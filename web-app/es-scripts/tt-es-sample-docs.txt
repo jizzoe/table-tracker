@@ -1,0 +1,8 @@
+{
+    "user_name" : "jizzoe",
+    "timestamp_started" :  "Smith",
+    "timestamp_ended" :  "Smith",
+    "money_started" :        25,
+    "about" :      "I love to go rock climbing",
+    "interests": [ "sports", "music" ]
+}
