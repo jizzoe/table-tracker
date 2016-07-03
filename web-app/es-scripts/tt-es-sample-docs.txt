@@ -1,3 +1,4 @@
+
 {
     "user_name" : "jizzoe",
     "timestamp_started" :  "Smith",
@@ -6,3 +7,17 @@
     "about" :      "I love to go rock climbing",
     "interests": [ "sports", "music" ]
 }
+
+
+
+
+curl -X POST 'http://localhost:9200/st_tabletracker/table_activity_event/1' -d '
+{
+    "user_name" : "jizzoe",
+    "timestamp_started" :  "Smith",
+    "timestamp_ended" :  "Smith",
+    "money_started" :        25,
+    "about" :      "I love to go rock climbing",
+    "interests": [ "sports", "music" ]
+}
+'

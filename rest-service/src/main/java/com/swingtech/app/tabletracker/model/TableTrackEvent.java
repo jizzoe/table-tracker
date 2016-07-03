@@ -3,7 +3,7 @@ package com.swingtech.app.tabletracker.model;
 import org.joda.time.LocalDateTime;
 
 public class TableTrackEvent {
-	private int eventId;
+	private String eventId;
 	private String userName;
 	private LocalDateTime eventStartTimestamp;
 	private LocalDateTime eventEndTimestamp;
@@ -13,6 +13,7 @@ public class TableTrackEvent {
 	private boolean isCurrent;
 	private String tableName;
 	private String tableType;
+	private EventAnalytics eventAnalytics;
 	
 	public String getUserName() {
 		return userName;
@@ -74,11 +75,17 @@ public class TableTrackEvent {
 	public void setTableType(String tableType) {
 		this.tableType = tableType;
 	}
-	public int getEventId() {
+	public String getEventId() {
 		return eventId;
 	}
-	public void setEventId(int eventId) {
+	public void setEventId(String eventId) {
 		this.eventId = eventId;
+	}
+	public EventAnalytics getEventAnalytics() {
+		return eventAnalytics;
+	}
+	public void setEventAnalytics(EventAnalytics eventAnalytics) {
+		this.eventAnalytics = eventAnalytics;
 	}
 	
 }
