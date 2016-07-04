@@ -2,7 +2,7 @@ package com.swingtech.app.tabletracker.service.service;
 
 import java.util.List;
 
-import org.elasticsearch.common.Table;
+import org.joda.time.Duration;
 import org.joda.time.LocalDateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,6 +14,7 @@ import com.swingtech.app.tabletracker.model.LogEventStatus;
 import com.swingtech.app.tabletracker.model.TableTrackEvent;
 import com.swingtech.app.tabletracker.service.dao.TableTrackerDao;
 import com.swingtech.app.tabletracker.service.error.TableTrackerExcepton;
+import com.swingtech.app.tabletracker.service.util.DateTimeUtil;
 import com.swingtech.app.tabletracker.service.util.IdGenertor;
 
 public class TableTrackerService {
@@ -21,7 +22,7 @@ public class TableTrackerService {
 	
 	public TableTrackerDao tableTrackerDao = new TableTrackerDao();  //TableTrackerDao tableTrackerDao;
 	
-	public LogEventStatus logEventStart(TableTrackEvent incommingEvent, boolean overrideCurrentEvent) {
+	public LogEventStatus logEventStart(String userName, TableTrackEvent incommingEvent, boolean overrideCurrentEvent) {
 		LogEventStatus logEventStatus = new LogEventStatus();
 		LogEventStatus testLogEventStatus = null;
 		String eventId = null;
@@ -34,7 +35,7 @@ public class TableTrackerService {
 		}
 		
 		try {
-			existingCurrentEvent = this.getCurrentOpenEvent();
+			existingCurrentEvent = this.getCurrentOpenEvent(userName);
 		} catch (TableTrackerExcepton e) {
 			return this.handleError(logEventStatus, EventFailureReasonEnum.SYSTEM_ERROR, "Error trying to log event start.  Could not get the current event", e);
 		}
@@ -52,7 +53,7 @@ public class TableTrackerService {
 		incommingEvent = this.addEventStartInfo(eventId, incommingEvent);
 		
 		try {
-			tableTrackerDao.addEvent(incommingEvent);
+			tableTrackerDao.addEvent(userName, incommingEvent);
 		} catch (TableTrackerExcepton e) {
 			return this.handleError(logEventStatus, EventFailureReasonEnum.SYSTEM_ERROR, "Error trying to log event start.  Error adding event to data store.", e);
 		}
@@ -62,13 +63,13 @@ public class TableTrackerService {
 		return logEventStatus;
 	}
 
-	public LogEventStatus logEventEnd(TableTrackEvent incommingEvent) {
+	public LogEventStatus logEventEnd(String userName, TableTrackEvent incommingEvent) {
 		LogEventStatus logEventStatus = new LogEventStatus();
 		LogEventStatus testLogEventStatus = null;
 		TableTrackEvent existingCurrentEvent = null;
 
 		try {
-			existingCurrentEvent = this.getCurrentOpenEvent();
+			existingCurrentEvent = this.getCurrentOpenEvent(userName);
 		} catch (TableTrackerExcepton e) {
 			return this.handleError(logEventStatus, EventFailureReasonEnum.SYSTEM_ERROR, "Error trying to log event end", e);
 		}
@@ -86,7 +87,7 @@ public class TableTrackerService {
 		existingCurrentEvent = this.addEventEndInfo(incommingEvent, existingCurrentEvent);
 
 		try {
-			tableTrackerDao.addEvent(incommingEvent);
+			tableTrackerDao.addEvent(userName, existingCurrentEvent);
 		} catch (TableTrackerExcepton e) {
 			return this.handleError(logEventStatus, EventFailureReasonEnum.SYSTEM_ERROR, "Error trying to log event end.", e);
 		}
@@ -128,7 +129,6 @@ public class TableTrackerService {
 	}
 
 	private TableTrackEvent addEventEndInfo(TableTrackEvent incommingEvent, TableTrackEvent existingCurrentEvent) {
-		incommingEvent.setCurrent(false);
 		EventAnalytics eventAnalytics;
 
 		if (incommingEvent.getEventStartTimestamp() != null) {
@@ -136,6 +136,9 @@ public class TableTrackerService {
 		} else {
 			existingCurrentEvent.setEventEndTimestamp(new LocalDateTime());
 		}
+		
+		existingCurrentEvent.setCurrent(false);
+		existingCurrentEvent.setMoneyAtEnd(incommingEvent.getMoneyAtEnd());
 		
 		eventAnalytics = this.createEventAnalytics(existingCurrentEvent);
 		
@@ -146,6 +149,15 @@ public class TableTrackerService {
 	
 	private EventAnalytics createEventAnalytics(TableTrackEvent existingCurrentEvent) {
 		EventAnalytics eventAnalytics = new EventAnalytics();
+		Double moneyDifference = 0.0;
+		Duration duration = null;
+		
+		moneyDifference = existingCurrentEvent.getMoneyAtEnd() - existingCurrentEvent.getMoneyAtStart();
+		
+		eventAnalytics.setMoneyDifference(moneyDifference);
+		eventAnalytics.setMoneyUp(moneyDifference > 0);
+		eventAnalytics.setTimeAtTableMilis(DateTimeUtil.getTimeDifferenceMilis(existingCurrentEvent.getEventStartTimestamp(), existingCurrentEvent.getEventEndTimestamp()));
+		eventAnalytics.setTimeAtTableDisplay(DateTimeUtil.getTimeDifferenceDisplayString(existingCurrentEvent.getEventStartTimestamp(), existingCurrentEvent.getEventEndTimestamp()));
 		
 		return eventAnalytics;
 	}
@@ -175,12 +187,36 @@ public class TableTrackerService {
 	private LogEventStatus handlError(LogEventStatus logEventStatus, EventFailureReasonEnum failureReason) {
 		return this.handleError(logEventStatus, failureReason, null);
 	}
+
+	public List<TableTrackEvent> getCurrentOpenEvents(String userName) throws TableTrackerExcepton {
+		List<TableTrackEvent> currentOpenEventList = null;
+		
+		currentOpenEventList = tableTrackerDao.getCurrentOpenEvents(userName);
+		
+		if (currentOpenEventList == null || currentOpenEventList.isEmpty()) {
+			return null;
+		}
+		
+		return currentOpenEventList;
+	}
+
+	public List<TableTrackEvent> getNonCurrentOpenEvents(String userName) throws TableTrackerExcepton {
+		List<TableTrackEvent> currentOpenEventList = null;
+		
+		currentOpenEventList = tableTrackerDao.getNonCurrentOpenEvents(userName);
+		
+		if (currentOpenEventList == null || currentOpenEventList.isEmpty()) {
+			return null;
+		}
+		
+		return currentOpenEventList;
+	}
 	
-	public TableTrackEvent getCurrentOpenEvent() throws TableTrackerExcepton {
+	public TableTrackEvent getCurrentOpenEvent(String userName) throws TableTrackerExcepton {
 		List<TableTrackEvent> currentOpenEventList = null;
 		TableTrackEvent currentOpenEvent = null;
 		
-		currentOpenEventList = tableTrackerDao.getCurrentOpenEvents();
+		currentOpenEventList = tableTrackerDao.getCurrentOpenEvents(userName);
 		
 		if (currentOpenEventList == null || currentOpenEventList.isEmpty()) {
 			return null;
@@ -200,11 +236,11 @@ public class TableTrackerService {
 		return currentOpenEvent;
 	}
 	
-	public TableTrackEvent getEventById(String eventId) {
+	public TableTrackEvent getEventById(String userName, String eventId) {
 		return null;
 	}
 	
-	public List<Table> getAllEvents() throws TableTrackerExcepton {
-		return tableTrackerDao.getAllEvents();
+	public List<TableTrackEvent> getAllEvents(String userName) throws TableTrackerExcepton {
+		return tableTrackerDao.getAllEvents(userName);
 	}
 }

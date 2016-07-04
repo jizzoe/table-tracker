@@ -1,17 +1,16 @@
 package com.swingtech.app.tabletracker.model;
 
-import org.joda.time.Duration;
-
 public class EventAnalytics {
-	private Duration timeAtTable;
+	private Long timeAtTableMilis;
+	private String timeAtTableDisplay;
 	private boolean isMoneyUp;
 	private Double moneyDifference;
 	
-	public Duration getTimeAtTable() {
-		return timeAtTable;
+	public Long getTimeAtTableMilis() {
+		return timeAtTableMilis;
 	}
-	public void setTimeAtTable(Duration timeAtTable) {
-		this.timeAtTable = timeAtTable;
+	public void setTimeAtTableMilis(Long timeAtTable) {
+		this.timeAtTableMilis = timeAtTable;
 	}
 	public boolean isMoneyUp() {
 		return isMoneyUp;
@@ -24,5 +23,11 @@ public class EventAnalytics {
 	}
 	public void setMoneyDifference(Double moneyDifference) {
 		this.moneyDifference = moneyDifference;
+	}
+	public String getTimeAtTableDisplay() {
+		return timeAtTableDisplay;
+	}
+	public void setTimeAtTableDisplay(String timeAtTableDisplay) {
+		this.timeAtTableDisplay = timeAtTableDisplay;
 	}
 }
